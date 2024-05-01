@@ -9,13 +9,13 @@
 #define leftMotor2 7
 
 //------------------------------------------------------------------------------------------------------------------
-#define Kp 0.085  // 255: 0.1     110: 0.2                //0.167
-#define Ki 0.55   // 255: 0.05    110: 0.05
-#define Kd 5      // 255: 0.003   110: 0.004
+#define Kp 0.2     // 255: 0.1     110: 0.2      | 80: 0.45   90: 0.99                                   //0.167
+#define Ki 0.05     // 255: 0.05    110: 0.05     | 80: 0.08   90: 0.15                            
+#define Kd 0.004    // 255: 0.003   110: 0.004    | 80: 0.01   90: 0.03                           
 
 //------------------------------------------------------------------------------------------------------------------
-uint8_t rightMaxSpeed = 110;
-uint8_t leftMaxSpeed = 110;
+uint8_t rightMaxSpeed = 255;
+uint8_t leftMaxSpeed = 255;
 
 //------------------------------------------------------------------------------------------------------------------
 QTRSensors qtr;
@@ -93,7 +93,9 @@ void loop() {
   Serial.print(pntX);
   dtostrf(PID_value, 9, 3, floX);
   sprintf(pntX, "    PID: %s", floX);
-  Serial.println(pntX);
+  Serial.print(pntX);
+  Serial.print("  eTime:");
+  Serial.print(eTime);
 
 
   lastError = P_error;
@@ -103,15 +105,17 @@ void loop() {
   med_Speed_R = rightMaxSpeed - abs(PID_value);
   int leftMotorSpeed = med_Speed_L - PID_value;
   int rightMotorSpeed = med_Speed_R + PID_value;
-  leftMotorSpeed = constrain(leftMotorSpeed, 0, leftMaxSpeed);
-  rightMotorSpeed = constrain(rightMotorSpeed, 0, rightMaxSpeed);
+  leftMotorSpeed = constrain(leftMotorSpeed, 35, leftMaxSpeed);
+  rightMotorSpeed = constrain(rightMotorSpeed, 35, rightMaxSpeed);
+
 
   Serial.print("  leftMotorSpeed:");
   Serial.print(leftMotorSpeed);
   Serial.print("  rightMotorSpeed:");
-  Serial.print(rightMotorSpeed);
+  Serial.println(rightMotorSpeed);
 
-  delayMicroseconds(40);
+
+  delayMicroseconds(80);
 
   // Motorları kontrol et
   digitalWrite(rightMotor1, 1);
@@ -128,12 +132,12 @@ double calculateError(unsigned int *sensors) {
   double sum = 0;
 
   for (int i = 0; i < 4; i++) {
-    weightedSum -= (sensors[i] * (7 - (2 * i)));
-    sum += (sensors[i]);
+    weightedSum -= ((2500-sensors[i]) * (7 - (2 * i)));
+    sum += (2500-sensors[i]);
   }
   for (int i = 4; i < 8; i++) {
-    weightedSum += (sensors[i] * ((2 * i) - 7));
-    sum += (sensors[i]);
+    weightedSum += ((2500-sensors[i]) * ((2 * i) - 7));
+    sum += (2500-sensors[i]);
   }
   if (sum == 0)
     return 0;
