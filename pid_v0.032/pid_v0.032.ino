@@ -9,13 +9,13 @@
 #define leftMotor2 7
 
 //------------------------------------------------------------------------------------------------------------------
-#define Kp 0.2  // 255: 0.1     110: 0.2      | 80: 0.45   90: 0.99                                   //0.167
-#define Ki 0.05  // 255: 0.05    110: 0.05     | 80: 0.08   90: 0.15
-#define Kd 0.004   // 255: 0.003   110: 0.004    | 80: 0.01   90: 0.03
+#define Kp 0.14   //[0.14]  //0.35  //0.4  //0.7
+#define Ki 0.0125  //[0.0125]  //0.15 //0.05 //0.15
+#define Kd 0.01   //[0.01]  // //0.005   //0.4
 
 //------------------------------------------------------------------------------------------------------------------
-uint8_t rightMaxSpeed = 90;
-uint8_t leftMaxSpeed = 90;
+uint8_t rightMaxSpeed = 100;
+uint8_t leftMaxSpeed = 100;
 
 //------------------------------------------------------------------------------------------------------------------
 QTRSensors qtr;
@@ -43,11 +43,9 @@ void setup() {
   }
 
   Serial.begin(9600);
-  //------------------------------------------------------------------------------------------------------------------
   qtr.setTypeRC();
   qtr.setSensorPins((const uint8_t[]){ A2, A1, A0, 2, 3, 4, 5, 6 }, SensorCount);
 
-  //------------------------------------------------------------------------------------------------------------------
   pinMode(rightMotor2, OUTPUT);
   pinMode(rightMotor1, OUTPUT);
   pinMode(rightMotorPWM, OUTPUT);
@@ -55,10 +53,8 @@ void setup() {
   pinMode(leftMotor1, OUTPUT);
   pinMode(leftMotor2, OUTPUT);
 
-  //------------------------------------------------------------------------------------------------------------------
   analogWrite(rightMotorPWM, 0);
   analogWrite(leftMotorPWM, 0);
-  //------------------------------------------------------------------------------------------------------------------
   digitalWrite(LED_BUILTIN, LOW);
   delay(1000);
 }
@@ -74,13 +70,26 @@ void loop() {
 
   P_error = position;
   cTime = micros();
-  eTime = (float)(cTime - pTime)/1000000;
+  eTime = (float)(cTime - pTime) / 1000000;
   I_error = I_error * 2 / 3 + P_error * eTime;
   D_error = (P_error - lastError) / eTime;
   PID_value = Kp * P_error + Ki * I_error + Kd * D_error;
 
+  delayMicroseconds(10000);
+  delayMicroseconds(10000);
 
- /*9 Serial.print("  Position:");
+  lastError = P_error;
+  pTime = cTime;
+
+  med_Speed_L = leftMaxSpeed - abs(PID_value);
+  med_Speed_R = rightMaxSpeed - abs(PID_value);
+  int leftMotorSpeed = med_Speed_L - PID_value;
+  int rightMotorSpeed = med_Speed_R + PID_value;
+  leftMotorSpeed = constrain(leftMotorSpeed, -leftMaxSpeed, leftMaxSpeed);
+  rightMotorSpeed = constrain(rightMotorSpeed, -rightMaxSpeed, rightMaxSpeed);
+
+/*
+  Serial.print("  Position:");
   Serial.print(position);
   dtostrf(Kp * P_error, 9, 3, floX);
   sprintf(pntX, "    P: %s", floX);
@@ -94,23 +103,6 @@ void loop() {
   dtostrf(PID_value, 9, 3, floX);
   sprintf(pntX, "    PID: %s", floX);
   Serial.print(pntX);
-  Serial.print("  eTime:");
-  Serial.println(eTime);
-*/
-
-  delayMicroseconds(10000);
-  delayMicroseconds(10000);
-  lastError = P_error;
-  pTime = cTime;
-
-  med_Speed_L = leftMaxSpeed - abs(PID_value);
-  med_Speed_R = rightMaxSpeed - abs(PID_value);
-  int leftMotorSpeed = med_Speed_L - PID_value;
-  int rightMotorSpeed = med_Speed_R + PID_value;
-  leftMotorSpeed = constrain(leftMotorSpeed, 35, leftMaxSpeed);
-  rightMotorSpeed = constrain(rightMotorSpeed, 35, rightMaxSpeed);
-
-/*
   Serial.print("  leftMotorSpeed:");
   Serial.print(leftMotorSpeed);
   Serial.print("  rightMotorSpeed:");
@@ -118,13 +110,33 @@ void loop() {
 */
 
   // Motorları kontrol et
-  digitalWrite(rightMotor1, 1);
-  digitalWrite(rightMotor2, 0);
-  analogWrite(rightMotorPWM, rightMotorSpeed);
+  if (leftMotorSpeed < 0) {
+    // Sağa dön
+    digitalWrite(rightMotor1, 1);
+    digitalWrite(rightMotor2, 0);
+    analogWrite(rightMotorPWM, abs(rightMotorSpeed));
 
-  digitalWrite(leftMotor1, 0);
-  digitalWrite(leftMotor2, 1);
-  analogWrite(leftMotorPWM, leftMotorSpeed);
+    digitalWrite(leftMotor1, 1);
+    digitalWrite(leftMotor2, 0);
+    analogWrite(leftMotorPWM, abs(leftMotorSpeed));
+  } else if (rightMotorSpeed < 0) {
+    // Sola dön
+    digitalWrite(rightMotor1, 0);
+    digitalWrite(rightMotor2, 1);
+    analogWrite(rightMotorPWM, abs(rightMotorSpeed));
+
+    digitalWrite(leftMotor1, 0);
+    digitalWrite(leftMotor2, 1);
+    analogWrite(leftMotorPWM, abs(leftMotorSpeed));
+  }  else {
+    digitalWrite(rightMotor1, 1); //ileri
+    digitalWrite(rightMotor2, 0); 
+    analogWrite(rightMotorPWM, rightMotorSpeed);
+
+    digitalWrite(leftMotor1, 0);  //ileri
+    digitalWrite(leftMotor2, 1);
+    analogWrite(leftMotorPWM, leftMotorSpeed);
+  } 
 }
 
 double calculateError(unsigned int *sensors) {
@@ -132,12 +144,12 @@ double calculateError(unsigned int *sensors) {
   double sum = 0;
 
   for (int i = 0; i < 4; i++) {
-    weightedSum -= ((2500 - sensors[i]) * (7 - (2 * i)));
-    sum += (2500 - sensors[i]);
+    weightedSum -= ((2500- sensors[i]) * (7 - (2 * i)));
+    sum += (2500- sensors[i]);
   }
   for (int i = 4; i < 8; i++) {
-    weightedSum += ((2500 - sensors[i]) * ((2 * i) - 7));
-    sum += (2500 - sensors[i]);
+    weightedSum += ((2500- sensors[i]) * ((2 * i) - 7));
+    sum += (2500- sensors[i]);
   }
   if (sum == 0)
     return 0;
