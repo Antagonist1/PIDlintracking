@@ -1,4 +1,4 @@
-#include <QTRSensors.h> 
+#include <QTRSensors.h>
 
 //------------------------------------------------------------------------------------------------------------------
 #define rightMotor2 12
@@ -9,9 +9,9 @@
 #define leftMotor2 7
 
 //------------------------------------------------------------------------------------------------------------------
-#define Kp 0.14   //[0.14]  //0.35  //0.4  //0.7
+#define Kp 0.14    //[0.14]  //0.35  //0.4  //0.7
 #define Ki 0.0125  //[0.0125]  //0.15 //0.05 //0.15
-#define Kd 0.01   //[0.01]  // //0.005   //0.4
+#define Kd 0.01    //[0.01]  // //0.005   //0.4
 
 //------------------------------------------------------------------------------------------------------------------
 uint8_t rightMaxSpeed = 100;
@@ -60,13 +60,21 @@ void setup() {
 }
 //******************************************************************************************************************
 void loop() {
-  char pntX[100];
-  char floX[10];
+  String pattern = getPattern("WhiteLine");
+
+  if (pattern == "11100000" || pattern == "01110000") {  //sol ağır basarsa
+
+  } else if (pattern == "00000111" || pattern == "00001110") {  //sağ ağır basarsa
+
+  } else {
+  }
+  qtr.read(sensorValues);
+  
   int med_Speed_R;
   int med_Speed_L;
 
-  qtr.read(sensorValues);
-  position = calculateError(sensorValues,"WhiteLine"); //BlackLine//WhiteLine
+  
+  position = calculateError(sensorValues, "WhiteLine");  //BlackLine//WhiteLine
 
   P_error = position;
   cTime = micros();
@@ -78,7 +86,7 @@ void loop() {
   delayMicroseconds(10000);
   delayMicroseconds(10000);
   delayMicroseconds(1000);
-  
+
   lastError = P_error;
   pTime = cTime;
 
@@ -89,7 +97,10 @@ void loop() {
   leftMotorSpeed = constrain(leftMotorSpeed, -leftMaxSpeed, leftMaxSpeed);
   rightMotorSpeed = constrain(rightMotorSpeed, -rightMaxSpeed, rightMaxSpeed);
 
-/*
+
+  /*
+  char pntX[100];
+  char floX[10];
   Serial.print("  Position:");
   Serial.print(position);
   dtostrf(Kp * P_error, 9, 3, floX);
@@ -129,15 +140,15 @@ void loop() {
     digitalWrite(leftMotor1, 0);
     digitalWrite(leftMotor2, 1);
     analogWrite(leftMotorPWM, abs(leftMotorSpeed));
-  }  else {
-    digitalWrite(rightMotor1, 1); //ileri
-    digitalWrite(rightMotor2, 0); 
+  } else {
+    digitalWrite(rightMotor1, 1);  //ileri
+    digitalWrite(rightMotor2, 0);
     analogWrite(rightMotorPWM, rightMotorSpeed);
 
     digitalWrite(leftMotor1, 0);  //ileri
     digitalWrite(leftMotor2, 1);
     analogWrite(leftMotorPWM, leftMotorSpeed);
-  } 
+  }
 }
 
 double calculateError(unsigned int *sensors, const char *lineType) {
@@ -167,4 +178,25 @@ double calculateError(unsigned int *sensors, const char *lineType) {
 
   return ((weightedSum / sum) * 100);
 }
+String getPattern(const char *lineType) {
+  String pattern = "";
 
+  if (strcmp(lineType, "WhiteLine") == 0) {
+    for (int i = 0; i < 8; i++) {
+      if (sensorValues[i] > 1250) {
+        pattern += "1";
+      } else {
+        pattern += "0";
+      }
+    }
+  } else if (strcmp(lineType, "BlackLine") == 0) {
+    for (int i = 0; i < 8; i++) {
+      if (sensorValues[i] <= 1250) {
+        pattern += "1";
+      } else {
+        pattern += "0";
+      }
+    }
+  }
+  return pattern;
+}
