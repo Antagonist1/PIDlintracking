@@ -60,31 +60,35 @@ void setup() {
 //******************************************************************************************************************
 void loop() {
   qtr.read(sensorValues);
-  String pattern = getPattern("WhiteLine");
-  Serial.println("White sensors pattern: " + pattern);
+  String pattern = getPattern("BlackLine");
+
+  //Serial.println("White sensors pattern: " + pattern);
+
   if (pattern == "11100000" || pattern == "01110000") {  //sol ağır basarsa
-    Stop();
-    delay(10);
     turnRight();
     delay(10);
-  } else if (pattern == "00000111" || pattern == "00001110") {  //sağ ağır basarsa
-    Stop();
-    delay(10);
-    turnLeft();
-    delay(10);
-  } else if (pattern == "11111000" || pattern == "11110000") {  //sola doksan
-    Stop();
-    delay(10);
-    turnRight();
-    delay(50);
-  } else if (pattern == "00011111" || pattern == "00001111") {  //sağa doksan
-    Stop();
-    delay(10);
-    turnLeft();
-    delay(50);
   } else {
-    position = calculateError(sensorValues, "WhiteLine");
+    position = calculateError(sensorValues, "BlackLine");
     PIDcalculate(position);
+  }
+  if (pattern == "00000111" || pattern == "00001110") {  //sağ ağır basarsa
+    turnLeft();
+    delay(10);
+  } else {
+    position = calculateError(sensorValues, "BlackLine");
+    PIDcalculate(position);
+  }
+  if (pattern == "11111000" || pattern == "11110000") {  //sola doksan
+    Stop();
+    delay(2);
+    turnRight();
+    delay(5);
+  }
+  if (pattern == "00011111" || pattern == "00001111") {  //sağa doksan
+    Stop();
+    delay(2);
+    turnLeft();
+    delay(5);
   }
   //SerialHaberlesme();
 }
@@ -236,9 +240,9 @@ void Stop() {
   // Sola dön
   digitalWrite(leftMotor1, 1);
   digitalWrite(leftMotor2, 1);
-  analogWrite(leftMotorPWM, 0);
+  analogWrite(leftMotorPWM, 255);
 
   digitalWrite(rightMotor1, 1);
   digitalWrite(rightMotor2, 1);
-  analogWrite(rightMotorPWM, 0);
+  analogWrite(rightMotorPWM, 255);
 }
